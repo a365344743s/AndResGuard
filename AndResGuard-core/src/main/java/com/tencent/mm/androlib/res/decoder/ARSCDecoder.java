@@ -17,6 +17,7 @@
 
 package com.tencent.mm.androlib.res.decoder;
 
+import com.android.tools.r8.t.a.a.a.h.H;
 import com.mindprod.ledatastream.LEDataInputStream;
 import com.mindprod.ledatastream.LEDataOutputStream;
 import com.tencent.mm.androlib.AndrolibException;
@@ -54,6 +55,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -570,12 +572,18 @@ public class ARSCDecoder {
       // 混淆过或者已经添加到白名单的都不需要再处理了
       if (!mResguardBuilder.isReplaced(mCurEntryID) && !mResguardBuilder.isInWhiteList(mCurEntryID)) {
         Configuration config = mApkDecoder.getConfig();
-        boolean isWhiteList = false;
-        if (config.mUseWhiteList) {
-          isWhiteList = dealWithWhiteList(specNamesId, config);
+        boolean shouldConvert = true;
+        if (config.mUseConvertList) {
+          shouldConvert = dealWithConvertList(specNamesId, config);
         }
 
-        if (!isWhiteList) {
+        if (shouldConvert) {
+          if (config.mUseWhiteList) {
+            shouldConvert = !dealWithWhiteList(specNamesId, config);
+          }
+        }
+
+        if (shouldConvert) {
           dealWithNonWhiteList(specNamesId, config);
         }
       }
@@ -586,6 +594,50 @@ public class ARSCDecoder {
     } else {
       readComplexEntry(false, specNamesId);
     }
+  }
+
+  /**
+   * deal with convertlist
+   *
+   * @param specNamesId resource spec name id
+   * @param config      {@Configuration} AndResGuard configuration
+   * @return isConvertList whether this resource is processed by convertlist
+   */
+  private boolean dealWithConvertList(int specNamesId, Configuration config) throws AndrolibException {
+    String packName = mPkg.getName();
+    String specName = mSpecNames.get(specNamesId).toString();
+    if (config.mConvertList.containsKey(packName)) {
+      HashMap<String, HashSet<Pattern>> typeMaps = config.mConvertList.get(packName);
+      String typeName = mType.getName();
+      HashSet<Pattern> patterns = null;
+      if (typeMaps.containsKey(typeName)) {
+        patterns = typeMaps.get(typeName);
+      }
+      if (typeMaps.containsKey("*")) {
+        if (patterns == null) {
+          patterns = typeMaps.get("*");
+        } else {
+          patterns = new HashSet<>(patterns);
+          patterns.addAll(typeMaps.get("*"));
+        }
+      }
+      if (patterns != null) {
+        for (Iterator<Pattern> it = patterns.iterator(); it.hasNext(); ) {
+          Pattern p = it.next();
+          System.out.printf("[match convert list] matcher %s ,typeName %s, specName :%s\n", p.pattern(), typeName, specName);
+          if (p.matcher(specName).matches()) {
+            System.out.printf("[match convert list] matcher %s ,typeName %s, specName :%s\n", p.pattern(), typeName, specName);
+            return true;
+          }
+        }
+      }
+    }
+    mPkg.putSpecNamesReplace(mResId, specName);
+    mPkg.putSpecNamesblock(specName, specName);
+    mResguardBuilder.setInWhiteList(mCurEntryID);
+
+    mType.putSpecResguardName(specName);
+    return false;
   }
 
   /**

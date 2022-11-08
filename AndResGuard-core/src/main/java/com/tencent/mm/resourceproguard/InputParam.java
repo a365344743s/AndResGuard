@@ -13,6 +13,7 @@ public class InputParam {
   public final boolean useSign;
   public final String metaName;
   public final String fixedResName;
+  public final ArrayList<String> convertList;
   public final ArrayList<String> whiteList;
   public final ArrayList<String> compressFilePattern;
   public final String apkPath;
@@ -35,6 +36,7 @@ public class InputParam {
       boolean useSign,
       boolean keepRoot,
       boolean mergeDuplicatedRes,
+      ArrayList<String> convertList,
       ArrayList<String> whiteList,
       ArrayList<String> compressFilePattern,
       String apkPath,
@@ -58,6 +60,7 @@ public class InputParam {
     this.useSign = useSign;
     this.keepRoot = keepRoot;
     this.mergeDuplicatedRes = mergeDuplicatedRes;
+    this.convertList = convertList;
     this.whiteList = whiteList;
     this.compressFilePattern = compressFilePattern;
     this.apkPath = apkPath;
@@ -88,6 +91,7 @@ public class InputParam {
     private boolean useSign;
     private boolean keepRoot;
     private boolean mergeDuplicatedRes;
+    private ArrayList<String> convertList;
     private ArrayList<String> whiteList;
     private ArrayList<String> compressFilePattern;
     private String apkPath;
@@ -134,6 +138,11 @@ public class InputParam {
 
     public Builder setMergeDuplicatedRes(boolean mergeDuplicatedRes) {
       this.mergeDuplicatedRes = mergeDuplicatedRes;
+      return this;
+    }
+
+    public Builder setConvertList(ArrayList<String> convertList) {
+      this.convertList = convertList;
       return this;
     }
 
@@ -245,6 +254,7 @@ public class InputParam {
           useSign,
           keepRoot,
           mergeDuplicatedRes,
+          convertList,
           whiteList,
           compressFilePattern,
           apkPath,

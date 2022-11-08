@@ -133,8 +133,16 @@ class AndResGuardTask extends DefaultTask {
   def RunGradleTask(config, String absPath, int minSDKVersion, int targetSDKVersion) {
     def signConfig = config.signConfig
     String packageName = config.packageName
+    ArrayList<String> convertListFullName = new ArrayList<>()
     ArrayList<String> whiteListFullName = new ArrayList<>()
     ExecutorExtension sevenzip = project.extensions.findByName("sevenzip") as ExecutorExtension
+    configuration.convertList.each {res ->
+      if (res.startsWith("R")) {
+        convertListFullName.add(packageName + "." + res)
+      } else {
+        convertListFullName.add(res)
+      }
+    }
     configuration.whiteList.each { res ->
       if (res.startsWith("R")) {
         whiteListFullName.add(packageName + "." + res)
@@ -145,6 +153,7 @@ class AndResGuardTask extends DefaultTask {
 
     InputParam.Builder builder = new InputParam.Builder()
         .setMappingFile(configuration.mappingFile)
+        .setConvertList(convertListFullName)
         .setWhiteList(whiteListFullName)
         .setUse7zip(configuration.use7zip)
         .setMetaName(configuration.metaName)

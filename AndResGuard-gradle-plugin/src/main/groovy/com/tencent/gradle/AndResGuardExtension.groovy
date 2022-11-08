@@ -15,6 +15,7 @@ class AndResGuardExtension {
   String fixedResName
   boolean keepRoot
   boolean mergeDuplicatedRes
+  Iterable<String> convertList
   Iterable<String> whiteList
   Iterable<String> compressFilePattern
   String finalApkBackupPath
@@ -30,6 +31,7 @@ class AndResGuardExtension {
     fixedResName = null
     keepRoot = false
     mergeDuplicatedRes = false
+    convertList = [];
     whiteList = []
     compressFilePattern = []
     mappingFile = null
@@ -72,6 +74,10 @@ class AndResGuardExtension {
     return mergeDuplicatedRes
   }
 
+  Iterable<String> getConvertList() {
+    return convertList
+  }
+
   Iterable<String> getWhiteList() {
     return whiteList
   }
@@ -104,6 +110,7 @@ class AndResGuardExtension {
            | fixedResName = ${fixedResName}
            | keepRoot = ${keepRoot}
            | mergeDuplicatedRes = ${mergeDuplicatedRes}
+           | convertList = ${convertList}
            | whiteList = ${whiteList}
            | compressFilePattern = ${compressFilePattern}
            | finalApkBackupPath = ${finalApkBackupPath}

@@ -34,6 +34,7 @@ public class Configuration {
   private static final String ATTR_ID = "id";
   private static final String ATTR_ACTIVE = "isactive";
   private static final String PROPERTY_ISSUE = "property";
+  private static final String CONVERTLIST_ISSUE = "convertlist";
   private static final String WHITELIST_ISSUE = "whitelist";
   private static final String COMPRESS_ISSUE = "compress";
   private static final String MAPPING_ISSUE = "keepmapping";
@@ -46,6 +47,7 @@ public class Configuration {
   private static final String ATTR_SIGNFILE_KEYPASS = "keypass";
   private static final String ATTR_SIGNFILE_STOREPASS = "storepass";
   private static final String ATTR_SIGNFILE_ALIAS = "alias";
+  public final HashMap<String, HashMap<String, HashSet<Pattern>>> mConvertList;
   public final HashMap<String, HashMap<String, HashSet<Pattern>>> mWhiteList;
   public final HashMap<String, HashMap<String, HashMap<String, String>>> mOldResMapping;
   public final HashMap<String, String> mOldFileMapping;
@@ -61,6 +63,7 @@ public class Configuration {
   public boolean mUseKeepMapping = false;
   public File mSignatureFile;
   public File mOldMappingFile;
+  public boolean mUseConvertList;
   public boolean mUseWhiteList;
   public boolean mUseCompress;
   public String mKeyPass;
@@ -93,6 +96,7 @@ public class Configuration {
       String keypass,
       String storealias,
       String storepass) throws IOException, ParserConfigurationException, SAXException {
+    mConvertList = new HashMap<>();
     mWhiteList = new HashMap<>();
     mOldResMapping = new HashMap<>();
     mOldFileMapping = new HashMap<>();
@@ -104,7 +108,7 @@ public class Configuration {
     if (mappingFile != null) {
       setKeepMappingData(mappingFile);
     }
-    // setSignData and setKeepMappingData must before readXmlConfig or it will read
+    // setSignData and setKeepMappingData must before XmlConfig or it will read
     readXmlConfig(config);
     this.m7zipPath = sevenzipPath;
     this.mZipalignPath = zipAlignPath;
@@ -117,6 +121,7 @@ public class Configuration {
    * @throws IOException io exception
    */
   public Configuration(InputParam param) throws IOException {
+    mConvertList = new HashMap<>();
     mWhiteList = new HashMap<>();
     mOldResMapping = new HashMap<>();
     mOldFileMapping = new HashMap<>();
@@ -128,6 +133,10 @@ public class Configuration {
     if (param.mappingFile != null) {
       mUseKeepMapping = true;
       setKeepMappingData(param.mappingFile);
+    }
+    for (String item : param.convertList) {
+      mUseConvertList = true;
+      addConvertList(item);
     }
     for (String item : param.whiteList) {
       mUseWhiteList = true;
@@ -205,6 +214,12 @@ public class Configuration {
           case PROPERTY_ISSUE:
             readPropertyFromXml(node);
             break;
+          case CONVERTLIST_ISSUE:
+            mUseConvertList = active;
+            if (mUseConvertList) {
+              readConvertListFromXml(node);
+            }
+            break;
           case WHITELIST_ISSUE:
             mUseWhiteList = active;
             if (mUseWhiteList) {
@@ -245,6 +260,20 @@ public class Configuration {
     }
   }
 
+  private void readConvertListFromXml(Node node) throws IOException {
+    NodeList childNodes = node.getChildNodes();
+    if (childNodes.getLength() > 0) {
+      for (int j = 0, n = childNodes.getLength(); j < n; j++) {
+        Node child = childNodes.item(j);
+        if (child.getNodeType() == Node.ELEMENT_NODE) {
+          Element check = (Element) child;
+          String vaule = check.getAttribute(ATTR_VALUE);
+          addConvertList(vaule);
+        }
+      }
+    }
+  }
+
   private void readWhiteListFromXml(Node node) throws IOException {
     NodeList childNodes = node.getChildNodes();
     if (childNodes.getLength() > 0) {
@@ -257,6 +286,48 @@ public class Configuration {
         }
       }
     }
+  }
+
+  private void addConvertList(String item) throws IOException {
+    if (item.length() == 0) {
+      throw new IOException("Invalid config file: Missing required attribute " + ATTR_VALUE);
+    }
+
+    int packagePos = item.indexOf(".R.");
+    if (packagePos == -1) {
+
+      throw new IOException(String.format("please write the full package name,eg com.tencent.mm.R.drawable.dfdf, but yours %s\n",
+              item
+      ));
+    }
+    //先去掉空格
+    item = item.trim();
+    String packageName = item.substring(0, packagePos);
+    //不能通过lastDot
+    int nextDot = item.indexOf(".", packagePos + 3);
+    String typeName = item.substring(packagePos + 3, nextDot);
+    String name = item.substring(nextDot + 1);
+    HashMap<String, HashSet<Pattern>> typeMap;
+
+    if (mConvertList.containsKey(packageName)) {
+      typeMap = mConvertList.get(packageName);
+    } else {
+      typeMap = new HashMap<>();
+    }
+
+    HashSet<Pattern> patterns;
+    if (typeMap.containsKey(typeName)) {
+      patterns = typeMap.get(typeName);
+    } else {
+      patterns = new HashSet<>();
+    }
+
+    name = Utils.convertToPatternString(name);
+    Pattern pattern = Pattern.compile(name);
+    patterns.add(pattern);
+    typeMap.put(typeName, patterns);
+    System.out.println(String.format("convertToPatternString typeName %s format %s", typeName, name));
+    mConvertList.put(packageName, typeMap);
   }
 
   private void addWhiteList(String item) throws IOException {
