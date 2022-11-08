@@ -43,9 +43,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1169,6 +1171,8 @@ public class ARSCDecoder {
           }
         }
       }
+      // 重排序混淆列表，让每次生成的结果都不同
+      Collections.shuffle(mReplaceStringBuffer, new SecureRandom());
     }
 
     // 对于某种类型用过的mapping，全部不能再用了
